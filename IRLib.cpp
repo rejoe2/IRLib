@@ -218,7 +218,10 @@ void IRsendPanasonic::send(unsigned long data) {
   space(172U*432U);  
 };  
 
-
+void IRsendSamsung32::send(unsigned long data)
+{
+  sendGeneric(data,32, 560*16, 560*8, 560, 560, 560*3, 560, 38, true, 108000);
+};
 /*
  * The RC5 protocol uses a phase encoding of data bits. A space/mark pair indicates "1"
  * and a mark/space indicates a "0". It begins with a single "1" bit which is not encoded
@@ -298,7 +301,7 @@ void IRsend::send(IR_types_t Type, unsigned long data, unsigned int data2, bool 
     case NECX:          IRsendNECx::send(data); break;    
     case JVC:           IRsendJVC::send(data,(bool)data2); break;
     case PANASONIC      IRsendPanasonic::send(data); break;
-    case SAMSUNG32:     IRsendSAMSUNG32::send(data,(bool)data2); break;
+    case SAMSUNG32:     IRsendSamsung32::send(data); break;
     
   //case ADDITIONAL:    IRsendADDITIONAL::send(data); break;//add additional protocols here
 	//You should comment out protocols you will likely never use and/or add extra protocols here
@@ -501,6 +504,9 @@ bool IRdecode::decode(void) {
   if (IRdecodePanasonic_Old::decode()) return true;
   if (IRdecodeNECx::decode()) return true;
   if (IRdecodeJVC::decode()) return true;
+  if (IRdecodePanasonic::decode()) return true;
+  if (IRdecodeSamsung32::decode()) return true;
+  
 //if (IRdecodeADDITIONAL::decode()) return true;//add additional protocols here
 //Deliberately did not add hash code decoding. If you get decode_type==UNKNOWN and
 // you want to know a hash code you can call IRhash::decode() yourself.
@@ -654,6 +660,14 @@ bool IRdecodePanasonic::GetBit(void) {
     decode_type = PANASONIC_NEW;  
     return true;  
   };  
+
+bool IRdecodeSamsung32::decode(void) {
+  IRLIB_ATTEMPT_MESSAGE(F("PANASONIC32"));
+  //                Estimation based on Lirc.conf file
+  if(!decodeGeneric(68, 560*16, 560*8, 0, 560, 560*3, 560)) return false;
+  decode_type = PANASONIC32;
+  return true;
+}
   
 
 /*
