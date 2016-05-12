@@ -1,4 +1,4 @@
-/* IRLib.h from IRLib ñ an Arduino library for infrared encoding and decoding
+/* IRLib.h from IRLib ‚Äì an Arduino library for infrared encoding and decoding
  * Version 1.60   January 2016 
  * Copyright 2014-2016 by Chris Young http://cyborg5.com
  * With additions by Gabriel Staples (www.ElectricRCAircraftGuy.com); see CHANGELOG.txt 
@@ -76,9 +76,12 @@ typedef uint8_t IR_types_t; //formerly was an enum
 #define PANASONIC_OLD 5
 #define JVC 6
 #define NECX 7
+#define PANASONIC_NEW 8
+#define SAMSUNG32 9
+
 //Add additional protocols here; keep HASH_CODE & LAST_PROTOCOL always at the very end 
 //#define ADDITIONAL (number); make additional protocol 8 and change HASH_CODE to 9
-#define HASH_CODE 8
+#define HASH_CODE 10
 #define LAST_PROTOCOL HASH_CODE
 
 /*
@@ -195,6 +198,8 @@ public virtual IRdecodeRC6,
 public virtual IRdecodePanasonic_Old,
 public virtual IRdecodeJVC,
 public virtual IRdecodeNECx
+public virtual IRdecodePanasonic_New,
+public virtual IRdecodeSamsung32,
 // , public virtual IRdecodeADDITIONAL //add additional protocols here
 {
 public:
@@ -300,10 +305,10 @@ protected:
   void init(void);
 };
 
-/* Original IRrecv class uses 50µs interrupts to sample input. While this is generally
+/* Original IRrecv class uses 50¬µs interrupts to sample input. While this is generally
  * accurate enough for everyday purposes, it may be difficult to port to other
  * hardware unless you know a lot about hardware timers and interrupts. Also
- * when trying to analyze unknown protocols, the 50µs granularity may not be sufficient.
+ * when trying to analyze unknown protocols, the 50¬µs granularity may not be sufficient.
  * In that case use either the IRrecvLoop or the IRrecvPCI class.
  */
 #ifdef USE_IRRECV
@@ -334,7 +339,7 @@ public:
 };
 
 /* This receiver uses the pin change hardware interrupt to detect when your input pin
- * changes state. It gives more detailed results than the 50µs interrupts of IRrecv
+ * changes state. It gives more detailed results than the 50¬µs interrupts of IRrecv
  * and theoretically is more accurate than IRrecvLoop. However because it only detects
  * pin changes, it doesn't always know when it's finished. getResults attempts to detect
  * a long gap of space but sometimes the next signal gets there before getResults notices.
@@ -394,10 +399,10 @@ private:
 void do_Blink(bool blinkState);
 
 /* This routine maps interrupt numbers used by attachInterrupt() into pin numbers.
- * NOTE: these interrupt numbers which are passed to ìattachInterrupt()î are not 
+ * NOTE: these interrupt numbers which are passed to ‚ÄúattachInterrupt()‚Äù are not 
  * necessarily identical to the interrupt numbers in the datasheet of the processor 
  * chip you are using. These interrupt numbers are a system unique to the 
- * ìattachInterrupt()î Arduino function.  It is used by both IRrecvPCI and IRfrequency.
+ * ‚ÄúattachInterrupt()‚Äù Arduino function.  It is used by both IRrecvPCI and IRfrequency.
  */
 unsigned char Pin_from_Intr(unsigned char inum);
 // Some useful constants
