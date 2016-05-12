@@ -189,6 +189,23 @@ public:
   virtual bool decode(void);
 };
 
+class IRdecodePanasonic: public virtual IRdecodeBase  
+{  
+public:  
+  bool decode(void);   
+private:  
+  bool GetBit(void);  
+  int offset;  
+  unsigned long data;  
+};  
+
+//Has to be verified
+class IRdecodeSamsung32: public virtual IRdecodeBase 
+{
+public:
+  virtual bool decode(void);
+};
+
 // main class for decoding all supported protocols
 class IRdecode: 
 public virtual IRdecodeNEC,
@@ -198,7 +215,7 @@ public virtual IRdecodeRC6,
 public virtual IRdecodePanasonic_Old,
 public virtual IRdecodeJVC,
 public virtual IRdecodeNECx
-public virtual IRdecodePanasonic_New,
+public virtual IRdecodePanasonic,
 public virtual IRdecodeSamsung32,
 // , public virtual IRdecodeADDITIONAL //add additional protocols here
 {
@@ -270,6 +287,21 @@ public:
   void send(unsigned long data);
 };
 
+class IRsendPanasonic: public virtual IRsendBase  
+{  
+public:  
+void send(unsigned long data);  
+private:  
+  void PutBits (unsigned long data, int nbits);  
+};  
+
+//to be verified
+class IRsendSamsung32: public virtual IRsendBase
+{
+public:
+  void send(unsigned long data);
+};
+
 class IRsend: 
 public virtual IRsendNEC,
 public virtual IRsendSony,
@@ -279,6 +311,10 @@ public virtual IRsendRC6,
 public virtual IRsendPanasonic_Old,
 public virtual IRsendJVC,
 public virtual IRsendNECx
+public virtual IRsendPanasonic
+public virtual IRsendSamsung32
+
+
 // , public virtual IRsendADDITIONAL //add additional protocols here
 {
 public:
