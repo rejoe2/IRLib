@@ -43,7 +43,7 @@ volatile irparams_t irparams; //MUST be volatile since it is used both inside an
 const __FlashStringHelper *Pnames(IR_types_t Type) {
   if(Type>LAST_PROTOCOL) Type=UNKNOWN;
   // You can add additional strings before the entry for hash code.
-  const __FlashStringHelper *Names[LAST_PROTOCOL+1]={F("Unknown"),F("NEC"),F("Sony"),F("RC5"),F("RC6"),F("Panasonic Old"),F("JVC"),F("NECx"),F("Hash Code")};
+  const __FlashStringHelper *Names[LAST_PROTOCOL+1]={F("Unknown"),F("NEC"),F("Sony"),F("RC5"),F("RC6"),F("Panasonic Old"),F("JVC"),F("NECx"),F("Panasonic"),F("Samsung32"),F("Hash Code")};
   return Names[Type];
 };
 
@@ -176,6 +176,49 @@ void IRsendRaw::send(unsigned int buf[], unsigned char len, unsigned char hz)
   space(0); // Just to be sure
 }
 
+//Panasonic part is a copy from https://github.com/cyborg5/IRLib/pull/15/commits/a0929cef76391a7035c97368c3ba611ec22aa190
+void IRsendPanasonic::PutBits (unsigned long data, int nbits){  
+  for (int i = 0; i < nbits; i++) {  
+     if (data & 0x80000000) {  
+       mark(432);  space(1296);  
+      } else {  
+       mark(432);  space(432);  
+      };  
+  data <<= 1;  
+  }  
+}  
+
+void IRsendPanasonic::send(unsigned long data) {  
+  // Enable IR out at 37kHz  
+  enableIROut(37);  
+
+  // Send the header  
+  mark(3456); space(1728);  
+
+  // Send Panasonic identifier  
+  PutBits (2,8);  
+  PutBits (32,8);  
+
+  // Send the device, sub-device and function  
+  PutBits (data, 24);//Send 12 bits  
+
+  // Send the checksum  
+  int checksum = 0;  
+  while (data > 0) {  
+    checksum = checksum ^ (data & 0xFF);  
+    data >>= 8;  
+  }  
+  PutBits (checksum, 8);  
+
+  // Send the stop bit  
+  mark(432);  
+
+  // Lead out is 173 times the base time 432  
+  // The U makes sure the compiler doesn't freak out about it being a possible overflow  
+  space(172U*432U);  
+};  
+
+
 /*
  * The RC5 protocol uses a phase encoding of data bits. A space/mark pair indicates "1"
  * and a mark/space indicates a "0". It begins with a single "1" bit which is not encoded
@@ -254,6 +297,9 @@ void IRsend::send(IR_types_t Type, unsigned long data, unsigned int data2, bool 
     case PANASONIC_OLD: IRsendPanasonic_Old::send(data); break;
     case NECX:          IRsendNECx::send(data); break;    
     case JVC:           IRsendJVC::send(data,(bool)data2); break;
+    case PANASONIC      IRsendPanasonic::send(data); break;
+    case SAMSUNG32:     IRsendSAMSUNG32::send(data,(bool)data2); break;
+    
   //case ADDITIONAL:    IRsendADDITIONAL::send(data); break;//add additional protocols here
 	//You should comment out protocols you will likely never use and/or add extra protocols here
   }
@@ -573,6 +619,42 @@ bool IRdecodeJVC::decode(void) {
   decode_type =JVC;
   return true;
 }
+
+bool IRdecodePanasonic::GetBit(void) {  
+    if (!MATCH(rawbuf[offset],432)) return DATA_MARK_ERROR(432);  
+    offset++;  
+    if (MATCH(rawbuf[offset],1296))   
+      data = (data << 1) | 1;  
+    else if (MATCH(rawbuf[offset],432))   
+      data <<= 1;  
+    else return DATA_SPACE_ERROR(1296);  
+    offset++;  
+    return true;  
+  };  
+    
+  bool IRdecodePanasonic::decode(void) {  
+    IRLIB_ATTEMPT_MESSAGE(F("Panasonic"));  
+    if (rawlen != 100) return RAW_COUNT_ERROR;  
+    
+    // This handles the lead-in or header  
+    if (!MATCH(rawbuf[1],3456))  return HEADER_MARK_ERROR(3456);  
+    if (!MATCH(rawbuf[2],1728)) return HEADER_SPACE_ERROR(1728);  
+    offset=3;  
+     
+    // Grab the next two bytes and see if they match 0x4004 which will confirm this is a Panasonic code   
+    data = 0;  
+    while (offset < 2*8*2+2) if (!GetBit()) return false;  
+    // Check if this is 0100000000000100 or 0x4004 in hex  
+    if (data != 0x4004) return IRLIB_DATA_ERROR_MESSAGE(F("Error identifying Panasonic"),offset,rawbuf[offset],0x4004);  
+    
+    // save the next 24 bits to value  
+    while(offset < 5*8*2+2) if (!GetBit()) return false;  
+    value = data; data = 0;  
+    
+    decode_type = PANASONIC_NEW;  
+    return true;  
+  };  
+  
 
 /*
  * The remaining protocols from the original IRremote library require special handling
